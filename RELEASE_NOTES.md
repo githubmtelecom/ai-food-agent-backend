@@ -1,11 +1,10 @@
-# Release Notes - v0.3.0 (Semantic RAG Search)
+# Release Notes - v0.4.0 (Conversational Memory & Agentic Loops)
 
 ## Overview
-Upgraded the database layer to utilize `pgvector`, enabling true semantic search and Retrieval-Augmented Generation (RAG) for the AI Food Agent. The AI can now recommend food based on cravings, vibes, and concepts rather than strict keyword matching.
+Upgraded the AI Agent from a linear script to a true Agentic Loop capable of short-term memory, data sanitization, and handling simultaneous tool calls autonomously.
 
 ## Features Deployed
-* **Infrastructure:** Migrated local Docker environment to the `pgvector` PostgreSQL image.
-* **Data Layer:** Added a 384-dimensional `Vector` column to the `MenuItem` SQLAlchemy model.
-* **Ingestion Engine:** Integrated `sentence-transformers` (`all-MiniLM-L6-v2`) into the Celery worker to mathematically embed menu descriptions during background scraping.
-* **AI Orchestrator:** Upgraded Claude's `search_local_menus` tool to perform L2 distance calculations directly in the database.
-* **Bug Fixes:** Resolved Anthropic API strict `tool_result` formatting requirements via LangChain `ToolMessage` objects.
+* **Short-Term Memory:** Integrated Redis to cache conversational context with a 1-hour Time-To-Live (TTL), allowing the AI to remember pronouns (e.g., "it") and previous dietary requests.
+* **Agentic Loop:** Implemented a multi-turn `while`/`for` execution loop. Claude can now trigger multiple tools simultaneously, review the data, and trigger follow-up tools before responding to the user.
+* **Data Sanitization:** Built a robust data parsing pipeline to intercept and sanitize raw JSON/Lists from the LangChain tool outputs before they enter the Redis memory cache.
+* **Infrastructure Fixes:** Resolved Docker networking issues to ensure the Celery background worker successfully routes data to the `pgvector` container.

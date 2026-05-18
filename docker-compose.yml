@@ -39,6 +39,7 @@ services:
     container_name: food-agent-worker
     command: celery -A worker worker --loglevel=info
     environment:
+      - DATABASE_URL=postgresql://admin:secretpassword@postgres:5432/food_agent_db
       - REDIS_URL=redis://redis:6379/0
     env_file:
       - .env
