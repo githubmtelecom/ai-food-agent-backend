@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, JSON, DateTime, ForeignKey, Float
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from pgvector.sqlalchemy import Vector
 from database import Base
 
 class User(Base):
@@ -25,9 +26,9 @@ class MenuItem(Base):
     name = Column(String, index=True)
     description = Column(String)
     price = Column(Float)
-    
-    # This JSON column holds our AI-extracted metadata!
-    # e.g. {"spice_level": "high", "allergies": ["dairy", "nuts"], "size": "large"}
     attributes = Column(JSON, default={})
+    
+    # NEW: The Vector column for semantic search! (384 dimensions for the MiniLM model)
+    embedding = Column(Vector(384))
     
     restaurant = relationship("Restaurant", back_populates="items")

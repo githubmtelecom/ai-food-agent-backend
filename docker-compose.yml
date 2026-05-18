@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   postgres:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg15
     container_name: food-agent-postgres
     environment:
       POSTGRES_USER: admin

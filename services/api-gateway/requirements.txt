@@ -69,3 +69,5 @@ wcwidth==0.7.0
 websockets==16.0
 xxhash==3.7.0
 zstandard==0.25.0
+pgvector
+sentence-transformers

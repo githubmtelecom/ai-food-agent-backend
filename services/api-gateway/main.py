@@ -1,43 +1,32 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import Any
 from pydantic import BaseModel
 import models, schemas
 from database import engine, get_db
 from ai_agent import process_user_intent
-from worker import build_delivery_cart
 
-# Create tables
+# Enable pgvector extension BEFORE creating tables
+with engine.connect() as conn:
+    conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    conn.commit()
+
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="AI Food Agent API Gateway", version="1.0.5")
-
-# --- Schemas ---
-class LocationScanRequest(BaseModel):
-    lat: float
-    lon: float
-
-@app.post("/restaurants/scan")
-def scan_location(request: LocationScanRequest):
-    """Triggers the background worker to scrape and index menus near these coordinates."""
-    from worker import ingest_local_menus
-    task = ingest_local_menus.delay(request.lat, request.lon)
-    return {"message": "Crawler dispatched. Menus will be available in the AI database shortly.", "task_id": task.id}
+app = FastAPI(title="AI Food Agent API Gateway", version="1.0.6")
 
 class ChatRequest(BaseModel):
     device_id: str
     message: str
 
-class OrderRequest(BaseModel):
-    device_id: str
-    restaurant_name: str
-    items: list
+class LocationScanRequest(BaseModel):
+    lat: float
+    lon: float
 
-# --- Endpoints ---
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
-    user_count = db.query(models.User).count()
-    return {"status": "healthy", "database_connected": True, "total_users": user_count}
+    return {"status": "healthy", "database_connected": True}
 
 @app.post("/users/", response_model=schemas.UserResponse)
 def get_or_create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -66,24 +55,13 @@ def chat_with_butler(request: ChatRequest, db: Session = Depends(get_db)):
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found. Register device first.")
     try:
-        # HERE IS THE FIX: We are now passing request.device_id as the 3rd argument
         ai_response = process_user_intent(request.message, db_user.persona, request.device_id)
         return {"response": ai_response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")
 
-@app.post("/trigger-bot")
-def trigger_automation_bot(request: OrderRequest):
-    task = build_delivery_cart.delay(request.device_id, request.restaurant_name, request.items)
-    return {"message": "Bot dispatched successfully!", "task_id": task.id}
-
-@app.websocket("/ws/voice")
-async def voice_stream(websocket: WebSocket):
-    await websocket.accept()
-    await websocket.send_text("Connection established. AI Butler listening...")
-    try:
-        while True:
-            data = await websocket.receive_text()
-            await websocket.send_text(f"AI backend received: {data}")
-    except WebSocketDisconnect:
-        print("Mobile client disconnected.")
+@app.post("/restaurants/scan")
+def scan_location(request: LocationScanRequest):
+    from worker import ingest_local_menus
+    task = ingest_local_menus.delay(request.lat, request.lon)
+    return {"message": "Crawler dispatched.", "task_id": task.id}
