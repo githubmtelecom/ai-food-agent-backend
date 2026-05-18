@@ -13,6 +13,17 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="AI Food Agent API Gateway", version="1.0.5")
 
 # --- Schemas ---
+class LocationScanRequest(BaseModel):
+    lat: float
+    lon: float
+
+@app.post("/restaurants/scan")
+def scan_location(request: LocationScanRequest):
+    """Triggers the background worker to scrape and index menus near these coordinates."""
+    from worker import ingest_local_menus
+    task = ingest_local_menus.delay(request.lat, request.lon)
+    return {"message": "Crawler dispatched. Menus will be available in the AI database shortly.", "task_id": task.id}
+
 class ChatRequest(BaseModel):
     device_id: str
     message: str

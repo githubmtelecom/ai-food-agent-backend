@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # The Relational Database for Users and Orders
   postgres:
     image: postgres:15-alpine
     container_name: food-agent-postgres
@@ -14,7 +13,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # The In-Memory Cache and Message Broker
   redis:
     image: redis:7-alpine
     container_name: food-agent-redis
@@ -22,6 +20,32 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+
+  api-gateway:
+    build: ./services/api-gateway
+    container_name: food-agent-api
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://admin:secretpassword@postgres:5432/food_agent_db
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+
+  celery-worker:
+    build: ./services/api-gateway
+    container_name: food-agent-worker
+    command: celery -A worker worker --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      - redis
 
 volumes:
   postgres_data:
