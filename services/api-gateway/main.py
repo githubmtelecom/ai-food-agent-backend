@@ -13,7 +13,7 @@ with engine.connect() as conn:
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="AI Food Agent API Gateway", version="1.0.7")
+app = FastAPI(title="AI Food Agent API Gateway", version="1.0.8")
 
 class ChatRequest(BaseModel):
     device_id: str
@@ -22,7 +22,12 @@ class ChatRequest(BaseModel):
 class LocationScanRequest(BaseModel):
     lat: float
     lon: float
-    url: str  # NEW: The target website to scrape!
+    url: str 
+
+class DiscoveryRequest(BaseModel):
+    lat: float
+    lon: float
+    radius: int = 1000  # Default to 1km radius
 
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
@@ -65,3 +70,9 @@ def scan_location(request: LocationScanRequest):
     from worker import ingest_local_menus
     task = ingest_local_menus.delay(request.lat, request.lon, request.url)
     return {"message": f"Crawler dispatched to {request.url}.", "task_id": task.id}
+
+@app.post("/restaurants/discover")
+def discover_restaurants(request: DiscoveryRequest):
+    from worker import discover_local_restaurants
+    task = discover_local_restaurants.delay(request.lat, request.lon, request.radius)
+    return {"message": f"Fleet Commander dispatched to scan {request.radius}m radius.", "task_id": task.id}

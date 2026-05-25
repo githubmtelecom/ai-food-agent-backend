@@ -73,3 +73,4 @@ pgvector
 sentence-transformers
 redis
 playwright
+googlemaps
