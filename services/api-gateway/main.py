@@ -1,20 +1,19 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import Any
+from typing import Any, Optional
 from pydantic import BaseModel
 import models, schemas
 from database import engine, get_db
 from ai_agent import process_user_intent
 
-# Enable pgvector extension BEFORE creating tables
 with engine.connect() as conn:
     conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
     conn.commit()
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="AI Food Agent API Gateway", version="1.0.6")
+app = FastAPI(title="AI Food Agent API Gateway", version="1.0.7")
 
 class ChatRequest(BaseModel):
     device_id: str
@@ -23,6 +22,7 @@ class ChatRequest(BaseModel):
 class LocationScanRequest(BaseModel):
     lat: float
     lon: float
+    url: str  # NEW: The target website to scrape!
 
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
@@ -63,5 +63,5 @@ def chat_with_butler(request: ChatRequest, db: Session = Depends(get_db)):
 @app.post("/restaurants/scan")
 def scan_location(request: LocationScanRequest):
     from worker import ingest_local_menus
-    task = ingest_local_menus.delay(request.lat, request.lon)
-    return {"message": "Crawler dispatched.", "task_id": task.id}
+    task = ingest_local_menus.delay(request.lat, request.lon, request.url)
+    return {"message": f"Crawler dispatched to {request.url}.", "task_id": task.id}

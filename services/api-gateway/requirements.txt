@@ -72,3 +72,4 @@ zstandard==0.25.0
 pgvector
 sentence-transformers
 redis
+playwright

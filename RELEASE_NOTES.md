@@ -1,10 +1,10 @@
-# Release Notes - v0.4.0 (Conversational Memory & Agentic Loops)
+# Release Notes - v0.5.0 (Live Web Scraping & AI Data Extraction)
 
 ## Overview
-Upgraded the AI Agent from a linear script to a true Agentic Loop capable of short-term memory, data sanitization, and handling simultaneous tool calls autonomously.
+Replaced the mocked ingestion logic with a live, autonomous web scraper. The background worker now physically navigates to target URLs, extracts raw website text, and leverages Claude's Structured Outputs to parse messy HTML into clean, strictly-typed JSON before embedding it into the Vector Database.
 
 ## Features Deployed
-* **Short-Term Memory:** Integrated Redis to cache conversational context with a 1-hour Time-To-Live (TTL), allowing the AI to remember pronouns (e.g., "it") and previous dietary requests.
-* **Agentic Loop:** Implemented a multi-turn `while`/`for` execution loop. Claude can now trigger multiple tools simultaneously, review the data, and trigger follow-up tools before responding to the user.
-* **Data Sanitization:** Built a robust data parsing pipeline to intercept and sanitize raw JSON/Lists from the LangChain tool outputs before they enter the Redis memory cache.
-* **Infrastructure Fixes:** Resolved Docker networking issues to ensure the Celery background worker successfully routes data to the `pgvector` container.
+* **Headless Browsing (Playwright):** Integrated Microsoft Playwright to spin up headless Chromium instances inside the Docker network, bypassing basic static-scraping limitations.
+* **LLM Structured Extraction:** Upgraded the data pipeline to use Claude 4.5 Haiku to process up to 50,000 characters of raw website text, dynamically inferring missing attributes like "spice level" and "allergies" based on menu item descriptions.
+* **Dynamic API Endpoints:** Upgraded the `POST /restaurants/scan` endpoint to accept dynamic `url` payloads for targeted restaurant indexing.
+* **DevOps & Containerization:** Pinned the API Gateway Dockerfile to `mcr.microsoft.com/playwright/python:v1.59.0-jammy` to ensure strict binary compatibility between the Python runtime and the headless browser executables.
